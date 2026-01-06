@@ -36,7 +36,7 @@ pipeline_yolo/
 ├── train_yolov8/
 │   ├── dataset/
 │   │   └── readme.me
-│   ├── yolo_training.py
+│   └── yolo_training.py
 │
 ├── test_preliminaire/
 │   └── test_yolov8/
