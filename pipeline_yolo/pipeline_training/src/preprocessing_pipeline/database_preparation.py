@@ -135,6 +135,6 @@ def dataset_preparation(source_path, database_name, dataset_number):
             dataset_dir.mkdir(parents=True, exist_ok=True)
 
             # appel du split
-            split_dataset(src=source_path, out=dataset_dir)
+            split_dataset(src=source_path, out=dataset_dir, seed=42+i)
 
             print(f"\n✔ Dataset split {i} prêt : {dataset_dir}")

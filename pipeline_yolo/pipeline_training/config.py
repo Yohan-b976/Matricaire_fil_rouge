@@ -1,8 +1,8 @@
 class Config:
     def __init__(self):
-        self.modeles = ["yolov8", "yolo11", "yolo26"]#
+        self.modeles = ["yolov8"]#, "yolo11", "yolo26"
         self.size = ["n", "s", "m", "l"]#
-        self.iteration = 3 #3
+        self.iteration = 2 #3
         self.dataset_number = 3 #3
         self.soil = [1, 5, 10]
         self.mu = 18
