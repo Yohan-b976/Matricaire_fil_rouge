@@ -1,12 +1,12 @@
 class Config:
     def __init__(self):
         self.modeles = ["yolov8"]#, "yolo11", "yolo26"
-        self.size = ["n", "s", "m", "l"]#
-        self.iteration = 2 #3
-        self.dataset_number = 3 #3
-        self.soil = [1, 5, 10]
-        self.mu = 18
-        self.sigma = 10
+        self.size = [ "l"]#"n", "s", "m",
+        self.iteration = 1 #3
+        self.dataset_number = 2 #3
+        self.soil = [1, 5, 10]#, 10
+        self.mu = 18.25
+        self.sigma = 4.7
         self.max_tries = 1000
         self.names = {
             "active_learning_split": ["flower", "white_obj"],
@@ -22,6 +22,6 @@ class Config:
         # nombre de classes associé
         self.nc = {k: len(v) for k, v in self.names.items()}
         self.imgsz = 128
-        self.epochs = 300
+        self.epochs = 10
         self.batch = 32
         self.patience = 25

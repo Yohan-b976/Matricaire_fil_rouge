@@ -1,9 +1,12 @@
+import json
 import yaml
 from pathlib import Path
 from ultralytics import YOLO
 import torch
 import os
 import random
+import numpy as np
+
 
 def infer_dataset_type(folder_name, config):
     """
@@ -45,19 +48,26 @@ def generate_yolo_yaml(output_path, dataset_path, nc, class_names):
     print(f"YAML généré : {output_path}")
 
 
-def yolo_run(it, name_mod, dataset_path,yaml_path, config, path_outs, name_dataset):
+def iteration_yolo(iterations, name_mod, dataset_path,yaml_path, config, path_outs, name_dataset):
+    for it in range(iterations):
+        print(f"=== Itération {it+1}/{iterations} ===")
+        yolo_run(it, name_mod, dataset_path, yaml_path, config, path_outs, name_dataset)
 
-    model = YOLO(name_mod+".pt")
+
+def yolo_run(it, name_mod, dataset_path, yaml_path, config, path_outs, name_dataset):
+
+    model = YOLO(name_mod + ".pt")
     dataset_path = Path(dataset_path).resolve()
-    yaml_dir = Path(yaml_path).resolve()
-    print(yaml_dir )
+    yaml_path = Path(yaml_path).resolve()
+    print("YAML:", yaml_path)
+
     random_seed = random.randint(0, 1_000_000)
 
     # ======================
     # TRAIN
     # ======================
-    results = model.train(
-        data=str(yaml_dir),
+    model.train(
+        data=str(yaml_path),
         imgsz=config.imgsz,
         epochs=config.epochs,
         batch=config.batch,
@@ -72,46 +82,58 @@ def yolo_run(it, name_mod, dataset_path,yaml_path, config, path_outs, name_datas
     )
 
     # ======================
-    # CHEMIN DU BEST MODEL
+    # BEST MODEL
     # ======================
-    best_model_path = Path(dataset_path, "runs", "weights", "best.pt")
+    best_model_path = dataset_path / "runs" / "weights" / "best.pt"
+    if not best_model_path.exists():
+        raise FileNotFoundError(f"best.pt introuvable : {best_model_path}")
 
-    # ======================
-    # VALIDATION DU BEST
-    # ======================
     best_model = YOLO(best_model_path)
-    metrics = best_model.val(data=yaml_dir)
 
     # ======================
-    # EXTRACTION MÉTRIQUES
+    # VALIDATION
     # ======================
-    metrics_dict = {
-        "precision": metrics.box.mp,
-        "recall": metrics.box.mr,
-        "mAP50": metrics.box.map50,
-        "mAP50-95": metrics.box.map
+    metrics = best_model.val(
+        data=str(yaml_path),
+        split="val",
+        save_json=True,
+        verbose=False
+    )
+
+    # ======================
+    # SUMMARY
+    # ======================
+    summary_list = metrics.summary()  # liste de dicts par classe
+
+    # convertir np.int64 / np.float64 en int / float pour JSON
+    cleaned_summary = []
+    for cls_dict in summary_list:
+        cleaned_cls = {}
+        for k, v in cls_dict.items():
+            if isinstance(v, (np.integer, np.int64)):
+                cleaned_cls[k] = int(v)
+            elif isinstance(v, (np.floating, np.float64)):
+                cleaned_cls[k] = float(v)
+            else:
+                cleaned_cls[k] = v
+        cleaned_summary.append(cleaned_cls)
+
+    # structurer JSON
+    run_data = {
+        "iteration": it,
+        "model": name_mod,
+        "dataset": name_dataset,
+        "summary": cleaned_summary
     }
 
     # ======================
-    # ÉCRITURE TXT
+    # SORTIE JSON
     # ======================
-    Path(path_outs).mkdir(parents=True, exist_ok=True)
+    out_dir = Path(path_outs)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    txt_name = f"{name_mod}_{name_dataset}_iteration_{it}.txt"
-    txt_path = Path(path_outs, txt_name)
-
-    with open(txt_path, "w") as f:
-        f.write(f"Model: {name_mod}\n")
-        f.write(f"Dataset: {name_dataset}\n")
-        f.write(f"Iteration: {it}\n\n")
-
-        for k, v in metrics_dict.items():
-            f.write(f"{k}: {v:.6f}\n")
-
-    print(f"Métriques sauvegardées dans : {txt_path}")
-
-
-def iteration_yolo(iterations, name_mod, dataset_path,yaml_path, config, path_outs, name_dataset):
-    for it in range(iterations):
-        print(f"=== Itération {it+1}/{iterations} ===")
-        yolo_run(it, name_mod, dataset_path, yaml_path, config, path_outs, name_dataset)
+    # JSON par itération
+    iter_json_path = out_dir / f"{name_mod}_{name_dataset}_iter_{it}.json"
+    with open(iter_json_path, "w") as f:
+        json.dump(run_data, f, indent=4)
+    print(f"JSON itération sauvegardé : {iter_json_path}")
