@@ -7,6 +7,8 @@
 # Autoriser les fichiers Python
 !*.py
 
+!*/ipynb
+
 # Autoriser le README
 !README.md
 
