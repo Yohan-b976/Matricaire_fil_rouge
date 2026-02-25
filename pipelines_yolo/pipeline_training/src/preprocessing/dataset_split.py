@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def split_dataset(src, out,
-                  train=0.7, val=0.2, test=0.1,
+                  train=0.8, val=0.2, test=0,
                   ext=".png", seed=42):
 
     assert abs(train + val + test - 1.0) < 1e-6
